@@ -37,11 +37,19 @@ HushSync/
 
 ## Which phones work
 
-HushSync needs a dialer that saves recordings as normal files. Samsung, Xiaomi / Redmi / POCO,
-Realme / Oppo / OnePlus (ColorOS) and Vivo dialers do. Phones using **Google's Phone app** (Pixel,
-Motorola and others) keep recordings hidden inside that app, so HushSync **can't** upload them.
-[SETUP_GUIDE.md](SETUP_GUIDE.md#step-6-turn-on-automatic-call-recording-in-your-phones-dialer) lists
-where each dialer saves its recordings.
+HushSync needs a dialer that saves recordings as normal files. Android only lets the phone's
+built-in dialer record calls; HushSync uploads what the dialer saves.
+
+| Phone | Where to turn on auto-record | Usual recordings folder |
+|---|---|---|
+| Samsung | Phone app → ⋮ → Settings → Record calls → Auto record calls | `Recordings/Call` |
+| Xiaomi / Redmi / POCO | Phone app → Settings → Call recording → Record calls automatically | `MIUI/sound_recorder/call_rec` |
+| Realme / Oppo / OnePlus (ColorOS dialer) | Phone app → Settings → Call recording → Auto record | `Music/Recordings/Call Recordings` or `Recordings` |
+| Vivo | Phone app → Settings → Call recording → Auto record | `Recordings/Record/Call` |
+| Pixel / Motorola / phones using **Google's Phone app** | Phone app → Settings → Call recording | ⚠️ Saved inside the Phone app where other apps can't reach them, so HushSync **can't** upload these |
+
+Folder names differ between models. If you can't find yours, make one test call, then open the
+**Files** app and search for the date or the contact's name.
 
 ## 1. Get a signing key
 
@@ -92,10 +100,19 @@ The build stops with a clear error if either secret is missing.
    storePassword=your-password
    keyPassword=your-password
    ```
-2. Open the `HushSync` folder in Android Studio, wait for Gradle sync, then **Build → Build APK(s)**.
+2. Install [Android Studio](https://developer.android.com/studio) (Standard setup; it downloads the
+   Android SDK, about 3 GB). You need around 10 GB of free disk space and ideally 8 GB of RAM.
+3. Open the `HushSync` folder in Android Studio, wait for Gradle sync (5–10 minutes the first
+   time), then **Build → Build App Bundle(s) / APK(s) → Build APK(s)**.
 
 Without a key file or secrets, builds use your own Android debug key instead. That works too: just
-register **that** key's SHA-1 in Google Cloud.
+register **that** key's SHA-1 in Google Cloud. Print it with:
+
+```bash
+keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android -keypass android
+```
+
+(On Windows the file is `%USERPROFILE%\.android\debug.keystore`.)
 
 ## 3. Set up Google Cloud (Drive sign-in)
 
@@ -164,16 +181,41 @@ fails right away, wait a bit and try again.
 
 ## 4. Set up the phone
 
-Install the APK, turn on your dialer's automatic call recording, then in HushSync:
+### Install the app
+
+**Without a cable:** send `app-debug.apk` to your phone, open it and tap **Install**. Allow
+"Install unknown apps" when asked.
+
+**With a USB cable (from Android Studio):**
+
+1. Turn on Developer options: **Settings → About phone**, tap **Build number** 7 times. (On Xiaomi
+   phones, tap **MIUI/HyperOS version** instead.)
+2. Go to **Settings → Developer options** and turn on **USB debugging**.
+3. Connect the phone to your PC and tap **Allow** on the phone.
+4. In Android Studio, pick your phone in the device dropdown and press **▶ Run**.
+5. Once it's installed, you can turn USB debugging off again. The app keeps working.
+
+### Turn on auto-record in your dialer
+
+Use the settings path for your phone from the [table above](#which-phones-work).
+
+### Set up HushSync (one time)
 
 1. **Connect Google Drive**: pick your account and allow access.
 2. **Choose calls folder**: go to your dialer's recordings folder → **Use this folder → Allow**.
-3. Make a test call. The recording should reach Drive within a few minutes and disappear from the
-   phone.
+3. **Battery:** start with HushSync on **Optimized** (the default) and make a test call. If the
+   recording reaches Drive within a few minutes, you're done.
+   - If it only arrives hours later, go to **Settings → Apps → HushSync → Battery** and choose
+     **Unrestricted** / **Allow background activity**. Realme and Oppo sometimes block background
+     triggers. Battery use stays tiny, because the app does nothing between recordings.
+   - On Xiaomi, also turn on **Autostart** for HushSync.
 
-If uploads only arrive hours later, set **Settings → Apps → HushSync → Battery** to
-**Unrestricted**. On Xiaomi, also turn on **Autostart**. Step-by-step instructions for each phone
-brand are in [SETUP_GUIDE.md](SETUP_GUIDE.md).
+### Using it
+
+- Nothing to do. About 1–3 minutes after a call ends, the recording is uploaded and then deleted
+  from the phone.
+- It uploads on **Wi-Fi or mobile data**, whichever is available.
+- To check it's working, look in Google Drive → **HushSync**.
 
 ## Troubleshooting
 
@@ -200,7 +242,6 @@ app/src/main/
     DriveAuth.kt              Google sign-in with the drive.file scope
     DriveUploader.kt          Drive REST calls: folders + resumable upload
     Prefs.kt                  Saved settings and upload bookkeeping
-SETUP_GUIDE.md                Detailed setup, including each phone brand's dialer settings
 ```
 
 Built with Kotlin, AndroidX WorkManager, Google Play services Identity (sign-in) and OkHttp.
