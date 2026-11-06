@@ -33,38 +33,25 @@ You need around **10 GB of free disk space** and ideally **8 GB of RAM** or more
 1. In Android Studio, click **Open** and select the `HushSync` folder (the one containing `settings.gradle.kts`).
 2. Wait for **Gradle sync** to finish (the progress bar at the bottom). The first time takes 5–10 minutes.
 3. If it offers to **upgrade the Android Gradle Plugin**, you can accept.
-4. Click **Build → Make Project**. If you see red errors, copy them and send them to Claude.
+4. Click **Build → Make Project**. If you see red errors, check the message in the Build tab.
 
 ## Step 3: Get your SHA-1 fingerprint
 
-Google needs this to know the app is really yours.
+Google needs this to know the app is really yours. It comes from the key the app is signed with.
+See [README → Get a signing key](README.md#1-get-a-signing-key) to create the key and print its
+SHA-1. If you build without your own key, use your Android debug key's SHA-1 instead:
 
-1. After the first build, open the **Terminal** tab at the bottom of Android Studio.
-2. Run:
+```
+"C:\Program Files\Android\Android Studio\jbr\bin\keytool" -list -v -keystore "%USERPROFILE%\.android\debug.keystore" -alias androiddebugkey -storepass android -keypass android
+```
 
-   ```
-   "C:\Program Files\Android\Android Studio\jbr\bin\keytool" -list -v -keystore "%USERPROFILE%\.android\debug.keystore" -alias androiddebugkey -storepass android -keypass android
-   ```
-
-   (If the terminal is PowerShell, put `&` in front of the first quoted path and use `$env:USERPROFILE` instead of `%USERPROFILE%`.)
-3. Copy the line that starts with **SHA1:** (it looks like `AB:12:CD:...`).
+(If the terminal is PowerShell, put `&` in front of the first quoted path and use `$env:USERPROFILE` instead of `%USERPROFILE%`.)
 
 ## Step 4: Set up Google Drive access (about 10 minutes, free)
 
-1. Go to **https://console.cloud.google.com** and sign in with the Google account you want to upload to.
-2. At the top, click the project picker, then **New project**. Name it `HushSync` and click **Create**.
-3. Turn on the Drive API: open **APIs & Services → Library**, search **Google Drive API**, then click **Enable**.
-4. Set up the consent screen. Open **APIs & Services → OAuth consent screen** (it may be called **Google Auth Platform**):
-   - Choose **External**.
-   - App name: `HushSync`. Use your own email for the support and contact fields.
-   - Under **Data access / Scopes**, add `.../auth/drive.file`.
-   - Under **Audience / Test users**, add your own Gmail address.
-5. Create the Android credential. Open **APIs & Services → Credentials → Create credentials → OAuth client ID**:
-   - Application type: **Android**
-   - Package name: `com.hushsync.app`
-   - SHA-1: paste the value from Step 3
-   - Click **Create**. You don't need to copy anything into the code.
-6. **Recommended:** on the consent screen / Audience page, click **Publish app** to move it to *In production*. Apps left in *Testing* may need you to reconnect Drive every 7 days. `drive.file` is a non-sensitive scope, so Google normally doesn't require a review for it.
+Follow [README → Set up Google Cloud](README.md#3-set-up-google-cloud-drive-sign-in): create a
+project, turn on the Drive API, set up the consent screen, create the Android credential with
+package `com.hushsync.app` and your SHA-1, then publish the app.
 
 ## Step 5: Put the app on your phone
 
