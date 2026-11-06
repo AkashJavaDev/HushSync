@@ -2,6 +2,11 @@ name: Build HushSync APK
 
 # Builds the installable debug APK on GitHub's servers whenever you push,
 # or when you start it by hand from the Actions tab.
+#
+# Needs two repository secrets (Settings -> Secrets and variables -> Actions):
+#   HUSHSYNC_KEYSTORE_BASE64    the signing key file, base64-encoded
+#   HUSHSYNC_KEYSTORE_PASSWORD  its password
+# The key itself is never stored in the repo.
 on:
   push:
     branches: [ main ]
@@ -25,7 +30,21 @@ jobs:
         with:
           gradle-version: '8.9'
 
+      - name: Restore the signing key from secrets
+        env:
+          KEYSTORE_BASE64: ${{ secrets.HUSHSYNC_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.HUSHSYNC_KEYSTORE_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ] || [ -z "$KEYSTORE_PASSWORD" ]; then
+            echo "::error::Signing key secrets are missing. Add HUSHSYNC_KEYSTORE_BASE64 and HUSHSYNC_KEYSTORE_PASSWORD under Settings -> Secrets and variables -> Actions."
+            exit 1
+          fi
+          echo "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/hushsync.jks"
+          echo "HUSHSYNC_KEYSTORE=$RUNNER_TEMP/hushsync.jks" >> "$GITHUB_ENV"
+
       - name: Build the debug APK
+        env:
+          HUSHSYNC_KEYSTORE_PASSWORD: ${{ secrets.HUSHSYNC_KEYSTORE_PASSWORD }}
         run: gradle assembleDebug --no-daemon
 
       - name: Upload the APK

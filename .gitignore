@@ -1,7 +1,11 @@
 # Build output
 build/
 app/build/
+app/release/
 .gradle/
+.kotlin/
+*.apk
+*.aab
 
 # Local machine config (points to a local SDK path; not used by the cloud build)
 local.properties
@@ -10,4 +14,14 @@ local.properties
 .idea/
 *.iml
 
-# Note: debug.keystore IS committed on purpose, so the SHA-1 stays stable.
+# Signing keys: never commit. The real key lives outside the project in ../keys/,
+# and the cloud build gets it from GitHub secrets.
+*.keystore
+*.jks
+*.p12
+keystore.properties
+App file/
+
+# Personal notes and screenshots (never commit)
+Google Cloud setup/
+PROJECT_HANDOFF.md

@@ -1,7 +1,28 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
 }
+
+// The signing key is never in the repo. Its SHA-1 is what you register in Google Cloud Console.
+//  - Cloud build: GitHub secrets, passed in as HUSHSYNC_KEYSTORE / HUSHSYNC_KEYSTORE_PASSWORD.
+//  - Local build: ../keys/hushsync-keystore.properties (outside the project folder).
+// With neither, builds fall back to your own Android debug key (register that SHA-1 instead).
+val keyProps = Properties().apply {
+    val envFile = System.getenv("HUSHSYNC_KEYSTORE")
+    val envPassword = System.getenv("HUSHSYNC_KEYSTORE_PASSWORD")
+    val localFile = rootProject.file("../keys/hushsync-keystore.properties")
+    if (!envFile.isNullOrBlank() && !envPassword.isNullOrBlank()) {
+        setProperty("storeFile", envFile)
+        setProperty("storePassword", envPassword)
+        setProperty("keyPassword", envPassword)
+        setProperty("keyAlias", System.getenv("HUSHSYNC_KEY_ALIAS") ?: "hushsync")
+    } else if (localFile.exists()) {
+        localFile.inputStream().use { load(it) }
+    }
+}
+val hasSigningKey = keyProps.getProperty("storeFile") != null
 
 android {
     namespace = "com.hushsync.app"
@@ -17,19 +38,24 @@ android {
     }
 
     signingConfigs {
-        // A fixed debug key committed to the repo, so every build (cloud or local)
-        // produces the same SHA-1 that is registered in Google Cloud Console.
-        getByName("debug") {
-            storeFile = rootProject.file("debug.keystore")
-            storePassword = "android"
-            keyAlias = "androiddebugkey"
-            keyPassword = "android"
+        if (hasSigningKey) {
+            create("hushsync") {
+                storeFile = file(keyProps.getProperty("storeFile"))
+                storePassword = keyProps.getProperty("storePassword")
+                keyAlias = keyProps.getProperty("keyAlias")
+                keyPassword = keyProps.getProperty("keyPassword")
+            }
         }
     }
 
     buildTypes {
+        // Debug and release are signed with the same key, so the SHA-1 never changes.
+        debug {
+            if (hasSigningKey) signingConfig = signingConfigs.getByName("hushsync")
+        }
         release {
             isMinifyEnabled = false
+            if (hasSigningKey) signingConfig = signingConfigs.getByName("hushsync")
         }
     }
 
